@@ -1,0 +1,4 @@
+logs/
+checkpoints/
+qwen_memory_final/
+qwen_memory_finetuned/
