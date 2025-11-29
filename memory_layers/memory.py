@@ -293,7 +293,7 @@ class QueryMLP(nn.Module):
         assert sizes[-1] == (heads * k_dim)
 
         sizes_ = list(sizes)
-        self.query_mlps = QueryMLP. mlp(sizes_, bias=bias, batchnorm=batchnorm)
+        self.query_mlps = QueryMLP.mlp(sizes_, bias=bias, batchnorm=batchnorm)
 
     @staticmethod
     def mlp(sizes, bias=True, batchnorm=True):
@@ -317,8 +317,7 @@ class QueryMLP(nn.Module):
         input = input.contiguous().view(-1, self.input_dim) if input.dim() > 2 else input
         bs = len(input)
 
-        outputs = [m(input) for m in self. query_mlps]
-        query = torch.cat(outputs, 1) if len(outputs) > 1 else outputs[0]
+        query = self.query_mlps(input)
 
         assert query.shape == (bs, self.heads * self.k_dim)
-        return query. view(bs * self.heads, self.k_dim)
+        return query.view(bs * self.heads, self.k_dim)

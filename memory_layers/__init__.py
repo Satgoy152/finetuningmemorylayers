@@ -4,5 +4,13 @@
 
 from .memory import HashingMemory, ProductKeyArgs
 from .xformer_embeddingbag import xFormerEmbeddingBag
+from .callbacks import MemoryLayerMonitorAndCheckpoint
+from .data import load_and_process_dataset
 
-__all__ = ['HashingMemory', 'ProductKeyArgs', 'xFormerEmbeddingBag']
+__all__ = [
+    'HashingMemory', 
+    'ProductKeyArgs', 
+    'xFormerEmbeddingBag',
+    'MemoryLayerMonitorAndCheckpoint',
+    'load_and_process_dataset'
+]
