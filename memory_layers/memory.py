@@ -1,4 +1,4 @@
-# Copyright (c) Meta Platforms, Inc.  and affiliates.
+# Copyright (c) Meta Platforms, Inc. and affiliates.
 # Simplified for single GPU - no distributed training
 
 from logging import getLogger
@@ -31,7 +31,7 @@ class ProductKeyArgs:
     peer_variant: bool = False
 
 
-class HashingMemory(nn. Module):
+class HashingMemory(nn.Module):
     """
     Simplified HashingMemory for single GPU training.
     All distributed training code removed.
@@ -74,7 +74,7 @@ class HashingMemory(nn. Module):
 
         # Global parameters
         self.input_dim = input_dim
-        self. output_dim = output_dim
+        self.output_dim = output_dim
         self.size = mem_n_keys ** 2
         self.k_dim = mem_k_dim
         self.v_dim = mem_v_dim if mem_v_dim > 0 else output_dim
@@ -83,7 +83,7 @@ class HashingMemory(nn. Module):
         self.swilu_proj = swilu_projection
         self.v_proj = mem_v_dim > 0 or self.swilu_proj
         self.heads = mem_heads
-        self. knn = mem_knn
+        self.knn = mem_knn
 
         # Dropout
         self.input_dropout = mem_input_dropout
@@ -103,16 +103,16 @@ class HashingMemory(nn. Module):
         if self.original:
             if not self.use_peer_variant:  # PK
                 self.values = xFormerEmbeddingBag(self.size, self.v_dim)
-                HashingMemory.VALUES = self. values
+                HashingMemory.VALUES = self.values
             else:  # PEER
-                self.values_u = nn. Embedding(self.size, self. v_dim)
-                self. values_v = nn.Embedding(self. size, self.v_dim)
-                HashingMemory.VALUES = self. values_u, self.values_v
+                self.values_u = nn.Embedding(self.size, self.v_dim)
+                self.values_v = nn.Embedding(self.size, self.v_dim)
+                HashingMemory.VALUES = self.values_u, self.values_v
         else:
             if not self.use_peer_variant:
                 self.values = None
             else:
-                self. values_u = None
+                self.values_u = None
                 self.values_v = None
         
         self.value_fixed_lr = value_fixed_lr
@@ -123,7 +123,7 @@ class HashingMemory(nn. Module):
                 proj_input = output_dim
             self.value_proj = torch.nn.Linear(proj_input, output_dim)
         if self.swilu_proj:
-            self. swilu_projection = torch.nn.Linear(self.input_dim, proj_input)
+            self.swilu_projection = torch.nn.Linear(self.input_dim, proj_input)
         
         # Gated memory
         self.gating = None
@@ -149,9 +149,9 @@ class HashingMemory(nn. Module):
         # Values
         if self.original:
             if not self.use_peer_variant:
-                nn.init.normal_(self.values. weight, mean=0, std=self.v_dim ** -0.5)
+                nn.init.normal_(self.values.weight, mean=0, std=self.v_dim ** -0.5)
             else:
-                nn. init.normal_(self.values_u.weight, mean=0, std=self.v_dim ** -0.5)
+                nn.init.normal_(self.values_u.weight, mean=0, std=self.v_dim ** -0.5)
                 nn.init.normal_(self.values_v.weight, mean=0, std=self.v_dim ** -0.5)
         
         # Queries
@@ -159,7 +159,7 @@ class HashingMemory(nn. Module):
         
         # Value projection
         if self.v_proj:
-            nn.init. normal_(self.value_proj.weight, mean=0, std=self.output_dim ** -0.5)
+            nn.init.normal_(self.value_proj.weight, mean=0, std=self.output_dim ** -0.5)
         if self.swilu_proj:
             nn.init.normal_(
                 self.swilu_projection.weight, mean=0, std=self.output_dim ** -0.5
@@ -172,8 +172,8 @@ class HashingMemory(nn. Module):
                     p.fixed_lr = self.value_fixed_lr
                     p.pk_value_param = True
                 for p in self.values_v.parameters():
-                    p. fixed_lr = self.value_fixed_lr
-                    p. pk_value_param = True
+                    p.fixed_lr = self.value_fixed_lr
+                    p.pk_value_param = True
             else:
                 for p in self.values.parameters():
                     p.fixed_lr = self.value_fixed_lr
@@ -203,11 +203,11 @@ class HashingMemory(nn. Module):
 
         # Store indices/scores (eval mode only)
         if not self.training and HashingMemory.EVAL_MEMORY:
-            self.last_indices = indices. view(bs, self.heads, knn). detach(). cpu()
-            self.last_scores = scores.view(bs, self. heads, knn).detach(). cpu(). float()
+            self.last_indices = indices.view(bs, self.heads, knn).detach().cpu()
+            self.last_scores = scores.view(bs, self.heads, knn).detach().cpu().float()
 
         # Re-scoring
-        scores = F.softmax(scores. float(), dim=-1). type_as(scores)
+        scores = F.softmax(scores.float(), dim=-1).type_as(scores)
 
         # Merge heads / knn
         indices = indices.view(bs, self.heads * knn)
@@ -241,9 +241,9 @@ class HashingMemory(nn. Module):
         return output
 
     def get_indices(self, query, knn):
-        assert query.dim() == 2 and query. size(1) == self.k_dim
+        assert query.dim() == 2 and query.size(1) == self.k_dim
         bs = len(query) // self.heads
-        query = query.view(-1, self.heads, self. k_dim)
+        query = query.view(-1, self.heads, self.k_dim)
         half = self.k_dim // 2
         
         # Keys: (heads, 2, n_keys, half)
@@ -265,9 +265,9 @@ class HashingMemory(nn. Module):
 
         # Cartesian product on best candidate keys
         all_scores = (
-            scores1.view(bs, self.heads, knn, 1). expand(bs, self.heads, knn, knn)
-            + scores2. view(bs, self.heads, 1, knn).expand(bs, self.heads, knn, knn)
-        ). view(bs, self.heads, -1)
+            scores1.view(bs, self.heads, knn, 1).expand(bs, self.heads, knn, knn)
+            + scores2.view(bs, self.heads, 1, knn).expand(bs, self.heads, knn, knn)
+        ).view(bs, self.heads, -1)
         
         all_indices = (
             indices1.view(bs, self.heads, knn, 1).expand(bs, self.heads, knn, knn) * n_keys
@@ -276,10 +276,10 @@ class HashingMemory(nn. Module):
 
         # Select overall best scores and indices
         scores, best_indices = torch.topk(all_scores, k=knn, dim=2, largest=True, sorted=True)
-        indices = all_indices. gather(2, best_indices)
+        indices = all_indices.gather(2, best_indices)
 
         assert scores.shape == indices.shape == (bs, self.heads, knn)
-        return scores. view(bs * self.heads, knn), indices.view(bs * self.heads, knn)
+        return scores.view(bs * self.heads, knn), indices.view(bs * self.heads, knn)
 
 
 class QueryMLP(nn.Module):
@@ -305,7 +305,7 @@ class QueryMLP(nn.Module):
         for i, (dim_in, dim_out) in enumerate(pairs):
             layers.append(nn.Linear(dim_in, dim_out, bias=bias))
             if batchnorm:
-                layers. append(nn.BatchNorm1d(dim_out))
+                layers.append(nn.BatchNorm1d(dim_out))
             if i < len(pairs) - 1:
                 layers.append(nn.ReLU())
 
