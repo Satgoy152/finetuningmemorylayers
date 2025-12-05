@@ -3,20 +3,31 @@ import torch
 import os
 import shutil
 
+import json
+
 class MemoryLayerMonitorAndCheckpoint(TrainerCallback):
     """
     Combined callback for:
     1.  Monitoring memory layer training health
     2. Safe checkpoint saving with safetensors
+    3. Periodic evaluation on benchmarks
     """
     
     def __init__(self, model, layers_to_check=[6, 12, 18], 
-                 save_every=500, keep_last=2, monitor_every=50):
+                 save_every=500, keep_last=2, monitor_every=50,
+                 evaluator=None, eval_every=100, eval_samples=20,
+                 log_file="training_eval_results.jsonl"):
         # Monitoring
         self.model = model
         self.layers_to_check = layers_to_check
         self.monitor_every = monitor_every
         self.initial_params = {}
+        
+        # Evaluation
+        self.evaluator = evaluator
+        self.eval_every = eval_every
+        self.eval_samples = eval_samples
+        self.log_file = log_file
         
         # Checkpointing
         self.save_every = save_every
@@ -37,12 +48,60 @@ class MemoryLayerMonitorAndCheckpoint(TrainerCallback):
         # ================================================================
         if step % self.monitor_every == 0 and step > 0:
             self._monitor_health(step)
+            
+        # ================================================================
+        # EVALUATION (every K steps)
+        # ================================================================
+        if self.evaluator and step % self.eval_every == 0 and step > 0:
+            self._run_evaluation(step, state)
         
         # ================================================================
         # CHECKPOINTING (every M steps)
         # ================================================================
         if step % self.save_every == 0 and step > 0:
             self._save_checkpoint(step, state, model, tokenizer)
+
+    def _run_evaluation(self, step, state):
+        """Run evaluation on benchmarks"""
+        print(f"\n{'='*80}")
+        print(f"📊 RUNNING BENCHMARK EVALUATION - Step {step}")
+        print(f"{'='*80}")
+        
+        # Save training state
+        was_training = self.model.training
+        self.model.eval()
+        
+        try:
+            results = self.evaluator.evaluate_all(num_samples=self.eval_samples)
+            
+            # Log to file
+            if state.is_world_process_zero:
+                log_entry = {
+                    "step": step,
+                    "epoch": state.epoch,
+                    **results
+                }
+                
+                # Add current loss if available
+                if state.log_history:
+                    last_log = state.log_history[-1]
+                    if 'loss' in last_log:
+                        log_entry['train_loss'] = last_log['loss']
+                
+                with open(self.log_file, "a") as f:
+                    f.write(json.dumps(log_entry) + "\n")
+                
+                print(f"Step {step} Evaluation Results:")
+                for k, v in results.items():
+                    print(f"  {k}: {v:.4f}")
+                print(f"  ✅ Results saved to {self.log_file}")
+                    
+        except Exception as e:
+            print(f"❌ Evaluation failed: {e}")
+        finally:
+            # Restore training state
+            self.model.train(was_training)
+            print(f"{'='*80}\n")
     
     def _monitor_health(self, step):
         """Monitor memory layer training health"""
