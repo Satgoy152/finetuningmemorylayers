@@ -12,7 +12,7 @@ class ModelEvaluator:
         self.device = device
         self.model.eval()
 
-    def generate_response(self, prompt, max_new_tokens=100, stop_sequences=None):
+    def generate_response(self, prompt, max_new_tokens=200, stop_sequences=None):
         inputs = self.tokenizer(prompt, return_tensors="pt").to(self.device)
         
         with torch.no_grad():
