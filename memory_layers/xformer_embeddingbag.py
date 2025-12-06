@@ -13,7 +13,7 @@ class xFormerEmbeddingBag(nn.Module):
     def __init__(self, size, dim):
         super().__init__()
         # Use float32 for stability, will auto-cast during forward
-        self.weight = nn.Parameter(torch.randn(size, dim, dtype=torch. float32))
+        self.weight = nn.Parameter(torch.randn(size, dim))
         self.size = size
         self.dim = dim
 

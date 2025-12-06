@@ -122,19 +122,12 @@ class MemoryLayerMonitorAndCheckpoint(TrainerCallback):
                 layer.values.weight.data - self.initial_params[f"layer_{idx}_values"]
             ).abs().mean().item()
             
-            # Check gradients
-            keys_grad = layer.keys.grad.norm().item() if layer.keys.grad is not None else 0.0
-            values_grad = (
-                layer.values.weight.grad.norm().item() 
-                if layer.values.weight.grad is not None else 0.0
-            )
-            
             # Parameter statistics
             keys_mean = layer.keys.data.mean().item()
             keys_std = layer.keys.data.std().item()
             values_mean = layer.values.weight.data.mean().item()
             values_std = layer.values.weight.data.std().item()
-            
+
             print(f"\n📊 Layer {idx} Memory:")
             print(f"  Parameters:")
             print(f"    Keys:   mean={keys_mean:+.4f}, std={keys_std:.4f}")
@@ -142,22 +135,13 @@ class MemoryLayerMonitorAndCheckpoint(TrainerCallback):
             print(f"  Changes since start:")
             print(f"    Keys:   {keys_diff:.6f} {'✅' if keys_diff > 1e-6 else '❌ FROZEN'}")
             print(f"    Values: {values_diff:.6f} {'✅' if values_diff > 1e-6 else '❌ FROZEN'}")
-            print(f"  Gradient norms:")
-            print(f"    Keys:   {keys_grad:.4f} {'✅' if keys_grad > 0 else '❌ NO GRAD'}")
-            print(f"    Values: {values_grad:.4f} {'✅' if values_grad > 0 else '❌ NO GRAD'}")
-            
-            # Health checks
+
+            # Health checks (only check parameter updates - gradients are cleared by optimizer)
             if keys_diff < 1e-8 and step > 100:
                 print(f"  ⚠️  WARNING: Keys not updating!")
                 all_healthy = False
             if values_diff < 1e-8 and step > 100:
                 print(f"  ⚠️  WARNING: Values not updating!")
-                all_healthy = False
-            if keys_grad == 0.0:
-                print(f"  ⚠️  WARNING: No gradient flow to keys!")
-                all_healthy = False
-            if values_grad == 0.0:
-                print(f"  ⚠️  WARNING: No gradient flow to values!")
                 all_healthy = False
         
         if all_healthy:
