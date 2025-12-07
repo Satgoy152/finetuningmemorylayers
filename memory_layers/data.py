@@ -9,7 +9,8 @@ def load_and_process_dataset(tokenizer, sample_size=20000):
         lambda x: (
             x['lang'] == 'en' and 
             x['role'] == 'assistant' and 
-            x['rank'] == 0.0 and
+            x['rank'] == 0.0 or 
+            x['rank'] == 1.0 and
             len(x['text']) > 50  # Filter out very short responses
         )
     )
