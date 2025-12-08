@@ -38,3 +38,25 @@ def load_and_process_dataset(tokenizer, sample_size=20000):
 
     print(f"Tokenized dataset: {tokenized}")
     return tokenized
+
+def load_hellaswag_dataset(tokenizer, sample_size=20000):
+    dataset = load_dataset("hellaswag", split="train")
+    dataset = dataset.select(range(min(sample_size, len(dataset))))
+
+    def tokenize(examples):
+        return tokenizer(
+            examples['ctx_a'],
+            truncation=True,
+            max_length=2048,
+            padding=False,
+        )
+
+    tokenized = dataset.map(
+        tokenize, 
+        batched=True, 
+        remove_columns=dataset.column_names,
+        num_proc=4
+    )
+
+    print(f"HellaSwag tokenized dataset: {tokenized}")
+    return tokenized
