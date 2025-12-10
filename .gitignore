@@ -1,6 +1,9 @@
 logs/
 checkpoints/
-qwen_memory_final/
+qwen_memory_*/
 qwen_memory_finetuned/
 wandb/
 tmp_trainer/
+/*.csv
+/*.json
+/*.png
