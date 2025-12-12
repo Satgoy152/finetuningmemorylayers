@@ -1,5 +1,9 @@
 from datasets import load_dataset
 
+from datasets import load_dataset
+from torch.utils.data import DataLoader
+from transformers import AutoTokenizer
+
 def load_and_process_dataset(tokenizer, sample_size=20000):
     # Load and filter OpenAssistant
     dataset = load_dataset("OpenAssistant/oasst1", split="train")
@@ -59,4 +63,28 @@ def load_hellaswag_dataset(tokenizer, sample_size=20000):
     )
 
     print(f"HellaSwag tokenized dataset: {tokenized}")
+    return tokenized
+
+def load_wikitext_dataset(tokenizer, sample_size=20000):
+    dataset = load_dataset("wikitext", "wikitext-103-v1", split="train", streaming=True)
+    
+    # Take subset from streaming dataset
+    dataset = dataset.take(sample_size)
+
+    def tokenize(examples):
+        return tokenizer(
+            examples['text'],
+            truncation=True,
+            max_length=1024,
+            padding="max_length",
+        )
+
+    # For streaming datasets, remove num_proc as it's not supported
+    tokenized = dataset.map(
+        tokenize, 
+        batched=True, 
+        remove_columns=['text']  # Specify columns explicitly for streaming
+    )
+
+    print(f"WikiText tokenized dataset (streaming): {tokenized}")
     return tokenized
