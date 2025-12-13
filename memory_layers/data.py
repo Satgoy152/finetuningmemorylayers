@@ -66,25 +66,25 @@ def load_hellaswag_dataset(tokenizer, sample_size=20000):
     return tokenized
 
 def load_wikitext_dataset(tokenizer, sample_size=20000):
-    dataset = load_dataset("wikitext", "wikitext-103-v1", split="train", streaming=True)
+    dataset = load_dataset("wikitext", "wikitext-103-v1", split="train")
     
-    # Take subset from streaming dataset
-    dataset = dataset.take(sample_size)
+    # Take subset from dataset
+    dataset = dataset.select(range(min(sample_size, len(dataset))))
 
     def tokenize(examples):
         return tokenizer(
             examples['text'],
             truncation=True,
             max_length=1024,
-            padding="max_length",
+            padding=False,
         )
 
-    # For streaming datasets, remove num_proc as it's not supported
     tokenized = dataset.map(
         tokenize, 
         batched=True, 
-        remove_columns=['text']  # Specify columns explicitly for streaming
+        remove_columns=dataset.column_names,
+        num_proc=4
     )
 
-    print(f"WikiText tokenized dataset (streaming): {tokenized}")
+    print(f"WikiText tokenized dataset: {tokenized}")
     return tokenized
